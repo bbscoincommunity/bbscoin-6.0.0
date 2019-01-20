@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers. 2018 BBSCoin developers
+// Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers. 2018-2019, BBSCoin developers
 //
 // This file is part of BBSCoin.
 //
@@ -42,7 +42,7 @@ std::string errorMessage(int error) {
   } buffer;
 
   auto size = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER, nullptr, error,
-                            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPTSTR>(&buffer.pointer), 0, nullptr);
+                            MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), reinterpret_cast<LPTSTR>(&buffer.pointer), 0, nullptr);
   return "result=" + std::to_string(error) + ", " + std::string(buffer.pointer, size);
 }
 
