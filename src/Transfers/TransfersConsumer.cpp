@@ -430,8 +430,7 @@ std::error_code createTransfers(
   const ITransactionReader& tx,
   const std::vector<uint32_t>& outputs,
   const std::vector<uint32_t>& globalIdxs,
-  std::vector<TransactionOutputInformationIn>& transfers,
-  Logging::LoggerRef& m_logger) {
+  std::vector<TransactionOutputInformationIn>& transfers) {
 
   auto txPubKey = tx.getTransactionPublicKey();
   std::vector<PublicKey> temp_keys;
@@ -474,13 +473,14 @@ std::error_code createTransfers(
 
       assert(out.key == reinterpret_cast<const PublicKey&>(in_ephemeral.publicKey));
 
-	  if (transactions_hash_seen.find(tx.getTransactionHash()) == transactions_hash_seen.end()) {
-        if (public_keys_seen.find(out.key) != public_keys_seen.end()) {
-          m_logger(WARNING, BRIGHT_RED) << "A duplicate public key was found in " << Common::podToHex(tx.getTransactionHash());
+      std::unordered_set<Crypto::Hash>::iterator it = transactions_hash_seen.find(tx.getTransactionHash());
+	  if (it == transactions_hash_seen.end()) {
+        std::unordered_set<Crypto::PublicKey>::iterator key_it = public_keys_seen.find(out.key);
+        if (key_it != public_keys_seen.end()) {
+          throw std::runtime_error("duplicate transaction output key is found");
           return std::error_code();
-        } else {
-          temp_keys.push_back(out.key);
         }
+        temp_keys.push_back(out.key);
 	  }
       info.amount = amount;
 
@@ -527,7 +527,7 @@ std::error_code TransfersConsumer::preprocessOutputs(const TransactionBlockInfo&
     if (it != m_subscriptions.end()) {
       auto& transfers = info.outputs[kv.first];
       try {
-          errorCode = createTransfers(it->second->getKeys(), blockInfo, tx, kv.second, info.globalIdxs, transfers, m_logger);
+          errorCode = createTransfers(it->second->getKeys(), blockInfo, tx, kv.second, info.globalIdxs, transfers);
           if (errorCode) {
             return errorCode;
           }
