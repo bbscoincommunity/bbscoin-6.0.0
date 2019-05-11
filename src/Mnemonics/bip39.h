@@ -1,3 +1,10 @@
+// Copyright (c) 2018 ciband (https://github.com/ciband/bip39). 2018 - 2019 BBSCoin developers
+//
+// This file is part of BBSCoin.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with BBSCoin.  If not, see <http://www.gnu.org/licenses/>.
+
 #ifndef BIP39_BIP39_H
 #define BIP39_BIP39_H
 
