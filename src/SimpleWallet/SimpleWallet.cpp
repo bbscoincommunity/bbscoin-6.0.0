@@ -47,6 +47,9 @@
 #include "Wallet/LegacyKeysImporter.h"
 #include "WalletLegacy/WalletHelper.h"
 
+#include "Mnemonics/bip39.h"
+#include "Mnemonics/util.h"
+
 #include "version.h"
 
 #include <Logging/LoggerManager.h>
@@ -491,6 +494,7 @@ simple_wallet::simple_wallet(System::Dispatcher& dispatcher, const CryptoNote::C
   m_consoleHandler.setHandler("set_log", boost::bind(&simple_wallet::set_log, this, _1), "set_log <level> - Change current log level, <level> is a number 0-4");
   m_consoleHandler.setHandler("address", boost::bind(&simple_wallet::print_address, this, _1), "Show current wallet public address");
   m_consoleHandler.setHandler("key", boost::bind(&simple_wallet::print_ikey, this, _1), "Show integrated key");
+  m_consoleHandler.setHandler("mnemonic", boost::bind(&simple_wallet::print_mnemonic, this, _1), "Show mnemonic words");
   m_consoleHandler.setHandler("save", boost::bind(&simple_wallet::save, this, _1), "Save wallet synchronized data");
   m_consoleHandler.setHandler("reset", boost::bind(&simple_wallet::reset, this, _1), "Discard cache data and start synchronizing from the start");
   m_consoleHandler.setHandler("help", boost::bind(&simple_wallet::help, this, _1), "Show this help");
@@ -527,13 +531,13 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
   }
 
   if (m_generate_new.empty() && m_wallet_file_arg.empty()) {
-    std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file, [I]mport with Integrated key or [E]xit.\n";
+    std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file, [I]mport with Integrated key, Import with [M]nemonics or [E]xit.\n";
     char c;
     do {
       std::string answer;
       std::getline(std::cin, answer);
       c = answer[0];
-      if (!(c == 'O' || c == 'G' || c == 'I' || c == 'E' || c == 'o' || c == 'g' || c == 'i' || c == 'e')) {
+      if (!(c == 'O' || c == 'G' || c == 'I' || c == 'M' || c == 'E' || c == 'o' || c == 'g' || c == 'i' || c == 'm' || c == 'e')) {
         std::cout << "Unknown command: " << c <<std::endl;
       } else {
         break;
@@ -552,7 +556,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
       boost::algorithm::trim(userInput);
     } while (userInput.empty());
 
-    if (c == 'g' || c == 'G' || c == 'i' || c == 'I') {
+    if (c == 'g' || c == 'G' || c == 'i' || c == 'I' || c == 'm' || c == 'M') {
       m_generate_new = userInput;
     } else {
       m_wallet_file_arg = userInput;
@@ -573,6 +577,62 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
 	    	return false;
 	    }
 	}
+
+	if (c == 'M' || c == 'm') {
+	    std::cout << "Input your mnemonics.\n";
+	    std::string userInput;
+	    do {
+	      std::cout << "View Secret Mnemonics: ";
+	      std::getline(std::cin, userInput);
+	      boost::algorithm::trim(userInput);
+	    } while (userInput.empty());
+	    
+	    m_view_mnemonic_arg = userInput;
+	    if (m_view_mnemonic_arg.empty()) {
+	    	fail_msg_writer() << "you should input a correctly view Mnemonic words";
+	    	return false;
+	    }
+
+	    do {
+	      std::cout << "Spend Secret Mnemonics: ";
+	      std::getline(std::cin, userInput);
+	      boost::algorithm::trim(userInput);
+	    } while (userInput.empty());
+	    
+	    m_spend_mnemonic_arg = userInput;
+	    if (m_spend_mnemonic_arg.empty()) {
+	    	fail_msg_writer() << "you should input a correctly spend Mnemonic words";
+	    	return false;
+	    }
+
+	    Crypto::SecretKey viewSecretKey;
+		Crypto::SecretKey spendSecretKey;
+		Crypto::PublicKey viewPublicKey;
+		Crypto::PublicKey spendPublicKey;
+
+	    if (!BIP39::convert_to_secret_key(m_view_mnemonic_arg, BIP39::language::en, viewSecretKey)) {
+			fail_msg_writer() << "Failed to check view secret key ";
+			return false;
+	    }
+
+	    if (!BIP39::convert_to_secret_key(m_spend_mnemonic_arg, BIP39::language::en, spendSecretKey)) {
+			fail_msg_writer() << "Failed to check view secret key ";
+			return false;
+	    }
+
+		if (!Crypto::secret_key_to_public_key(viewSecretKey, viewPublicKey)) {
+			fail_msg_writer() << "Failed to convert view secret key to public key, from " << Common::podToHex(viewSecretKey);
+			return false;
+		}
+
+		if (!Crypto::secret_key_to_public_key(spendSecretKey, spendPublicKey)) {
+			fail_msg_writer() << "Failed to convert spend secret key to public key, from " << Common::podToHex(spendSecretKey);
+			return false;
+		}
+
+	    m_integrated_key_arg = Common::podToHex(spendPublicKey) + Common::podToHex(viewPublicKey) + Common::podToHex(spendSecretKey) + Common::podToHex(viewSecretKey);
+	}
+
   }
 
   if (!m_generate_new.empty() && !m_wallet_file_arg.empty()) {
@@ -726,6 +786,9 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
       "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << std::endl <<
       "You can also import Integrated key with Import Key feature via GUI Wallet " << std::endl <<
       "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
+    
+    std::vector<std::string> args;
+    print_mnemonic(args);
   }
   catch (const std::exception& e) {
     fail_msg_writer() << "failed to generate new wallet: " << e.what();
@@ -783,6 +846,10 @@ bool simple_wallet::import_wallet(const int keytype, const std::string &wallet_f
       "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << std::endl <<
       "You can also import Integrated key with Import Key feature via GUI Wallet " << std::endl <<
       "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
+
+    std::vector<std::string> args;
+    print_mnemonic(args);
+
   }
   catch (const std::exception& e) {
     fail_msg_writer() << "failed to import new wallet: " << e.what();
@@ -1155,8 +1222,30 @@ bool simple_wallet::print_ikey(const std::vector<std::string> &args/* = std::vec
   AccountKeys keys;
   m_wallet->getAccountKeys(keys);
 
-  success_msg_writer() << "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << "\n"
+  success_msg_writer() << "\nIntegrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << "\n"
   "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+bool simple_wallet::print_mnemonic(const std::vector<std::string> &args/* = std::vector<std::string>()*/) {
+
+  AccountKeys keys;
+  m_wallet->getAccountKeys(keys);
+
+  std::string viewMnemonic;
+  std::string spendMnemonic;
+
+  bool ret = BIP39::convert_from_secret_key(viewMnemonic, BIP39::language::en, keys.viewSecretKey);
+  if (!ret) {
+  	  fail_msg_writer() << "failed to convert view key";
+  }
+  ret = BIP39::convert_from_secret_key(spendMnemonic, BIP39::language::en, keys.spendSecretKey);
+  if (!ret) {
+  	  fail_msg_writer() << "failed to convert spend key";
+  }
+
+  success_msg_writer() << "Your mnemonic words generated!\nView Secret: " << viewMnemonic << "\n"
+  "Spend Secret: "  << spendMnemonic;
   return true;
 }
 //----------------------------------------------------------------------------------------------------
