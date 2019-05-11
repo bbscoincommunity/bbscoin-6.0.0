@@ -179,7 +179,6 @@ bool convert_to_secret_key(std::string& mnemonic_word, language lang, Crypto::Se
 }
 
 bool convert_from_secret_key(std::string& mnemonic_word, language lang, Crypto::SecretKey& secretKey) {
-	char delimiter = ' ';
 	std::vector<uint8_t> vecSecretKey;
 
 	for (int i = 0; i < 32; ++i) {
