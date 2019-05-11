@@ -1234,7 +1234,7 @@ bool simple_wallet::print_mnemonic(const std::vector<std::string> &args/* = std:
   	  fail_msg_writer() << "failed to convert spend key";
   }
 
-  success_msg_writer() << "Your mnemonic words generated!\nView Secret: " << viewMnemonic << "\n"
+  success_msg_writer() << "Your mnemonic words have been generated!\nView Secret: " << viewMnemonic << "\n"
   "Spend Secret: "  << spendMnemonic;
   return true;
 }
