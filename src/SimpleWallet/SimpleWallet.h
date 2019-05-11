@@ -75,6 +75,7 @@ namespace CryptoNote
     bool run_console_handler();
 
     bool new_wallet(const std::string &wallet_file, const std::string& password);
+    bool import_wallet(const int keytype, const std::string &wallet_file, const std::string& password, const std::string& key);
     bool open_wallet(const std::string &wallet_file, const std::string& password);
     bool close_wallet();
 
@@ -154,6 +155,7 @@ namespace CryptoNote
 
   private:
     std::string m_wallet_file_arg;
+    std::string m_integrated_key_arg;
     std::string m_generate_new;
     std::string m_import_path;
 

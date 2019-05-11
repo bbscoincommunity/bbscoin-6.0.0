@@ -527,13 +527,13 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
   }
 
   if (m_generate_new.empty() && m_wallet_file_arg.empty()) {
-    std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file or [E]xit.\n";
+    std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file, [I]mport with Integrated key or [E]xit.\n";
     char c;
     do {
       std::string answer;
       std::getline(std::cin, answer);
       c = answer[0];
-      if (!(c == 'O' || c == 'G' || c == 'E' || c == 'o' || c == 'g' || c == 'e')) {
+      if (!(c == 'O' || c == 'G' || c == 'I' || c == 'E' || c == 'o' || c == 'g' || c == 'i' || c == 'e')) {
         std::cout << "Unknown command: " << c <<std::endl;
       } else {
         break;
@@ -552,11 +552,27 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
       boost::algorithm::trim(userInput);
     } while (userInput.empty());
 
-    if (c == 'g' || c == 'G') {
+    if (c == 'g' || c == 'G' || c == 'i' || c == 'I') {
       m_generate_new = userInput;
     } else {
       m_wallet_file_arg = userInput;
     }
+
+	if (c == 'I' || c == 'i') {
+	    std::cout << "Input your Integrated key.\n";
+	    std::string userInput;
+	    do {
+	      std::cout << "Integrated key: ";
+	      std::getline(std::cin, userInput);
+	      boost::algorithm::trim(userInput);
+	    } while (userInput.empty());
+	    
+	    m_integrated_key_arg = userInput;
+	    if (m_integrated_key_arg.empty() || m_integrated_key_arg.size() != 256) {
+	    	fail_msg_writer() << "you should input a correctly integrated key" << m_integrated_key_arg.size();
+	    	return false;
+	    }
+	}
   }
 
   if (!m_generate_new.empty() && !m_wallet_file_arg.empty()) {
@@ -619,10 +635,18 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
       return false;
     }
 
-    if (!new_wallet(walletFileName, pwd_container.password())) {
-      logger(ERROR, BRIGHT_RED) << "account creation failed";
-      return false;
-    }
+	if (!m_integrated_key_arg.empty()) {
+		// import
+	    if (!import_wallet(0, walletFileName, pwd_container.password(), m_integrated_key_arg)) {
+	      logger(ERROR, BRIGHT_RED) << "account creation failed";
+	      return false;
+	    }
+	} else {
+	    if (!new_wallet(walletFileName, pwd_container.password())) {
+	      logger(ERROR, BRIGHT_RED) << "account creation failed";
+	      return false;
+	    }
+	}
 
     if (!writeAddressFile(walletAddressFile, m_wallet->getAddress())) {
       logger(WARNING, BRIGHT_RED) << "Couldn't write wallet address file: " + walletAddressFile;
@@ -701,7 +725,7 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
       "Generated new wallet: " << m_wallet->getAddress() << std::endl <<
       "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << std::endl <<
       "You can also import Integrated key with Import Key feature via GUI Wallet " << std::endl <<
-      "view key: " << Common::podToHex(keys.viewSecretKey);
+      "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
   }
   catch (const std::exception& e) {
     fail_msg_writer() << "failed to generate new wallet: " << e.what();
@@ -711,6 +735,63 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
   success_msg_writer() <<
     "**********************************************************************\n" <<
     "Your wallet has been generated.\n" <<
+    "Use \"help\" command to see the list of available commands.\n" <<
+    "Always use \"exit\" command when closing simplewallet to save\n" <<
+    "current session's state. Otherwise, you will possibly need to synchronize \n" <<
+    "your wallet again. Your wallet key is NOT under risk anyway.\n" <<
+    "**********************************************************************";
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+// keytype 0 = integrated key
+bool simple_wallet::import_wallet(const int keytype, const std::string &wallet_file, const std::string& password, const std::string& key) {
+  m_wallet_file = wallet_file;
+
+  m_wallet.reset(new WalletLegacy(m_currency, *m_node.get()));
+  m_node->addObserver(static_cast<INodeObserver*>(this));
+  m_wallet->addObserver(this);
+  try {
+    m_initResultPromise.reset(new std::promise<std::error_code>());
+    std::future<std::error_code> f_initError = m_initResultPromise->get_future();
+    
+    AccountKeys iKeys;
+    Common::podFromHex(key.substr(0, 64), iKeys.address.spendPublicKey);
+    Common::podFromHex(key.substr(64, 64), iKeys.address.viewPublicKey);
+    Common::podFromHex(key.substr(128, 64), iKeys.spendSecretKey);
+    Common::podFromHex(key.substr(192, 64), iKeys.viewSecretKey);
+    
+    m_wallet->initWithKeys(iKeys, password);
+    auto initError = f_initError.get();
+    m_initResultPromise.reset(nullptr);
+    if (initError) {
+      fail_msg_writer() << "failed to generate new wallet: " << initError.message();
+      return false;
+    }
+
+    try {
+      CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
+    } catch (std::exception& e) {
+      fail_msg_writer() << "failed to save new wallet: " << e.what();
+      throw;
+    }
+
+    AccountKeys keys;
+    m_wallet->getAccountKeys(keys);
+
+    logger(INFO, BRIGHT_WHITE) <<
+      "Imported wallet: " << m_wallet->getAddress() << std::endl <<
+      "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << std::endl <<
+      "You can also import Integrated key with Import Key feature via GUI Wallet " << std::endl <<
+      "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
+  }
+  catch (const std::exception& e) {
+    fail_msg_writer() << "failed to import new wallet: " << e.what();
+    return false;
+  }
+
+  success_msg_writer() <<
+    "**********************************************************************\n" <<
+    "Your wallet has been imported.\n" <<
     "Use \"help\" command to see the list of available commands.\n" <<
     "Always use \"exit\" command when closing simplewallet to save\n" <<
     "current session's state. Otherwise, you will possibly need to synchronize \n" <<
@@ -1074,7 +1155,8 @@ bool simple_wallet::print_ikey(const std::vector<std::string> &args/* = std::vec
   AccountKeys keys;
   m_wallet->getAccountKeys(keys);
 
-  success_msg_writer() << "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey);
+  success_msg_writer() << "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << "\n"
+  "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
   return true;
 }
 //----------------------------------------------------------------------------------------------------
