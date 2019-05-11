@@ -786,6 +786,9 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
       "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << std::endl <<
       "You can also import Integrated key with Import Key feature via GUI Wallet " << std::endl <<
       "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
+    
+    std::vector<std::string> args;
+    print_mnemonic(args);
   }
   catch (const std::exception& e) {
     fail_msg_writer() << "failed to generate new wallet: " << e.what();
@@ -843,6 +846,10 @@ bool simple_wallet::import_wallet(const int keytype, const std::string &wallet_f
       "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << std::endl <<
       "You can also import Integrated key with Import Key feature via GUI Wallet " << std::endl <<
       "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
+
+    std::vector<std::string> args;
+    print_mnemonic(args);
+
   }
   catch (const std::exception& e) {
     fail_msg_writer() << "failed to import new wallet: " << e.what();
@@ -1237,7 +1244,7 @@ bool simple_wallet::print_mnemonic(const std::vector<std::string> &args/* = std:
   	  fail_msg_writer() << "failed to convert spend key";
   }
 
-  success_msg_writer() << "\nView Secret: " << viewMnemonic << "\n"
+  success_msg_writer() << "Your mnemonic words generated!\nView Secret: " << viewMnemonic << "\n"
   "Spend Secret: "  << spendMnemonic;
   return true;
 }
