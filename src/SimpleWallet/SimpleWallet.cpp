@@ -1212,7 +1212,7 @@ bool simple_wallet::print_ikey(const std::vector<std::string> &args/* = std::vec
   AccountKeys keys;
   m_wallet->getAccountKeys(keys);
 
-  success_msg_writer() << "\nIntegrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << "\n"
+  success_msg_writer() << "\nIntegrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << "\n"  <<
   "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
   return true;
 }
@@ -1234,7 +1234,7 @@ bool simple_wallet::print_mnemonic(const std::vector<std::string> &args/* = std:
   	  fail_msg_writer() << "failed to convert spend key";
   }
 
-  success_msg_writer() << "Your mnemonic words have been generated!\nView Secret: " << viewMnemonic << "\n"
+  success_msg_writer() << "Your mnemonic words have been generated!\nView Secret: " << viewMnemonic << "\n"  <<
   "Spend Secret: "  << spendMnemonic;
   return true;
 }
