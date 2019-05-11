@@ -494,6 +494,7 @@ simple_wallet::simple_wallet(System::Dispatcher& dispatcher, const CryptoNote::C
   m_consoleHandler.setHandler("set_log", boost::bind(&simple_wallet::set_log, this, _1), "set_log <level> - Change current log level, <level> is a number 0-4");
   m_consoleHandler.setHandler("address", boost::bind(&simple_wallet::print_address, this, _1), "Show current wallet public address");
   m_consoleHandler.setHandler("key", boost::bind(&simple_wallet::print_ikey, this, _1), "Show integrated key");
+  m_consoleHandler.setHandler("mnemonic", boost::bind(&simple_wallet::print_mnemonic, this, _1), "Show mnemonic words");
   m_consoleHandler.setHandler("save", boost::bind(&simple_wallet::save, this, _1), "Save wallet synchronized data");
   m_consoleHandler.setHandler("reset", boost::bind(&simple_wallet::reset, this, _1), "Discard cache data and start synchronizing from the start");
   m_consoleHandler.setHandler("help", boost::bind(&simple_wallet::help, this, _1), "Show this help");
@@ -1214,8 +1215,30 @@ bool simple_wallet::print_ikey(const std::vector<std::string> &args/* = std::vec
   AccountKeys keys;
   m_wallet->getAccountKeys(keys);
 
-  success_msg_writer() << "Integrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << "\n"
+  success_msg_writer() << "\nIntegrated key: " << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << Common::podToHex(keys.spendSecretKey) << Common::podToHex(keys.viewSecretKey) << "\n"
   "Tracking key: "  << Common::podToHex(keys.address.spendPublicKey) << Common::podToHex(keys.address.viewPublicKey) << "0000000000000000000000000000000000000000000000000000000000000000" << Common::podToHex(keys.viewSecretKey);
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+bool simple_wallet::print_mnemonic(const std::vector<std::string> &args/* = std::vector<std::string>()*/) {
+
+  AccountKeys keys;
+  m_wallet->getAccountKeys(keys);
+
+  std::string viewMnemonic;
+  std::string spendMnemonic;
+
+  bool ret = BIP39::convert_from_secret_key(viewMnemonic, BIP39::language::en, keys.viewSecretKey);
+  if (!ret) {
+  	  fail_msg_writer() << "failed to convert view key";
+  }
+  ret = BIP39::convert_from_secret_key(spendMnemonic, BIP39::language::en, keys.spendSecretKey);
+  if (!ret) {
+  	  fail_msg_writer() << "failed to convert spend key";
+  }
+
+  success_msg_writer() << "\nView Secret: " << viewMnemonic << "\n"
+  "Spend Secret: "  << spendMnemonic;
   return true;
 }
 //----------------------------------------------------------------------------------------------------

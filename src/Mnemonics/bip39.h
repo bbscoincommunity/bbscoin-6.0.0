@@ -58,6 +58,7 @@ std::vector<uint8_t> decode_mnemonic(const word_list& mnemonic, const std::strin
 
 bool valid_mnemonic(const word_list& mnemonic, language lang, std::vector<uint8_t>& data);
 bool convert_to_secret_key(std::string& mnemonic_word, language lang, Crypto::SecretKey& secretKey);
+bool convert_from_secret_key(std::string& mnemonic_word, language lang, Crypto::SecretKey& secretKey);
 
 }
 

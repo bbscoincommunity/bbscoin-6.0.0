@@ -160,7 +160,7 @@ bool convert_to_secret_key(std::string& mnemonic_word, language lang, Crypto::Se
 	std::vector<uint8_t> vecSecretKey;
 
 	word_list mnemonic = BIP39::split(mnemonic_word, delimiter);
-	bool ret = valid_mnemonic(mnemonic, BIP39::language::en, vecSecretKey);
+	bool ret = valid_mnemonic(mnemonic, lang, vecSecretKey);
 	if (!ret) {
 		return ret;
 	}
@@ -168,6 +168,24 @@ bool convert_to_secret_key(std::string& mnemonic_word, language lang, Crypto::Se
 	for (int i = 0; i < 32; ++i) {
 		secretKey.data[i] = vecSecretKey[i];
 	}
+	return true;
+}
+
+bool convert_from_secret_key(std::string& mnemonic_word, language lang, Crypto::SecretKey& secretKey) {
+	char delimiter = ' ';
+	std::vector<uint8_t> vecSecretKey;
+
+	for (int i = 0; i < 32; ++i) {
+		vecSecretKey.push_back(secretKey.data[i]);
+	}
+
+	word_list mnemonic = create_mnemonic(vecSecretKey, lang);
+	mnemonic_word = mnemonic.to_string();
+
+	if (mnemonic_word.empty()) {
+		return false;
+	}
+
 	return true;
 }
 }
