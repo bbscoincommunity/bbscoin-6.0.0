@@ -47,6 +47,8 @@
 #include "Wallet/LegacyKeysImporter.h"
 #include "WalletLegacy/WalletHelper.h"
 
+#include "Mnemonics/bip39.h"
+
 #include "version.h"
 
 #include <Logging/LoggerManager.h>
@@ -527,13 +529,13 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
   }
 
   if (m_generate_new.empty() && m_wallet_file_arg.empty()) {
-    std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file, [I]mport with Integrated key or [E]xit.\n";
+    std::cout << "Nor 'generate-new-wallet' neither 'wallet-file' argument was specified.\nWhat do you want to do?\n[O]pen existing wallet, [G]enerate new wallet file, [I]mport with Integrated key, Import with [M]nemonics or [E]xit.\n";
     char c;
     do {
       std::string answer;
       std::getline(std::cin, answer);
       c = answer[0];
-      if (!(c == 'O' || c == 'G' || c == 'I' || c == 'E' || c == 'o' || c == 'g' || c == 'i' || c == 'e')) {
+      if (!(c == 'O' || c == 'G' || c == 'I' || c == 'M' || c == 'E' || c == 'o' || c == 'g' || c == 'i' || c == 'm' || c == 'e')) {
         std::cout << "Unknown command: " << c <<std::endl;
       } else {
         break;
@@ -552,7 +554,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
       boost::algorithm::trim(userInput);
     } while (userInput.empty());
 
-    if (c == 'g' || c == 'G' || c == 'i' || c == 'I') {
+    if (c == 'g' || c == 'G' || c == 'i' || c == 'I' || c == 'm' || c == 'M') {
       m_generate_new = userInput;
     } else {
       m_wallet_file_arg = userInput;
@@ -573,6 +575,52 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
 	    	return false;
 	    }
 	}
+
+	if (c == 'M' || c == 'm') {
+	    std::cout << "Input your mnemonics.\n";
+	    std::string userInput;
+	    do {
+	      std::cout << "View Secret Mnemonics: ";
+	      std::getline(std::cin, userInput);
+	      boost::algorithm::trim(userInput);
+	    } while (userInput.empty());
+	    
+	    m_view_mnemonic_arg = userInput;
+	    if (m_view_mnemonic_arg.empty()) {
+	    	fail_msg_writer() << "you should input a correctly view Mnemonic words";
+	    	return false;
+	    }
+
+	    do {
+	      std::cout << "Spend Secret Mnemonics: ";
+	      std::getline(std::cin, userInput);
+	      boost::algorithm::trim(userInput);
+	    } while (userInput.empty());
+	    
+	    m_spend_mnemonic_arg = userInput;
+	    if (m_spend_mnemonic_arg.empty()) {
+	    	fail_msg_writer() << "you should input a correctly spend Mnemonic words";
+	    	return false;
+	    }
+	    
+	    Crypto::SecretKey viewSecretKey = Mnemonics::MnemonicToPrivateKey(m_view_mnemonic_arg);
+	    Crypto::SecretKey spendSecretKey = Mnemonics::MnemonicToPrivateKey(m_spend_mnemonic_arg);
+
+		Crypto::PublicKey viewPublicKey;
+		if (!Crypto::secret_key_to_public_key(viewSecretKey, viewPublicKey)) {
+			fail_msg_writer() << "Failed to convert view secret key to public key, from " << Common::podToHex(viewSecretKey);
+			return false;
+		}
+
+		Crypto::PublicKey spendPublicKey;
+		if (!Crypto::secret_key_to_public_key(spendSecretKey, spendPublicKey)) {
+			fail_msg_writer() << "Failed to convert spend secret key to public key, from " << Common::podToHex(spendSecretKey);
+			return false;
+		}
+
+	    m_integrated_key_arg = Common::podToHex(spendPublicKey) + Common::podToHex(viewPublicKey) + Common::podToHex(spendSecretKey) + Common::podToHex(viewSecretKey);
+	}
+
   }
 
   if (!m_generate_new.empty() && !m_wallet_file_arg.empty()) {

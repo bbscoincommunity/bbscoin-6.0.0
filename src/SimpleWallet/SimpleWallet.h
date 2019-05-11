@@ -156,6 +156,8 @@ namespace CryptoNote
   private:
     std::string m_wallet_file_arg;
     std::string m_integrated_key_arg;
+    std::string m_view_mnemonic_arg;
+    std::string m_spend_mnemonic_arg;
     std::string m_generate_new;
     std::string m_import_path;
 
