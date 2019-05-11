@@ -569,7 +569,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
 	    
 	    m_integrated_key_arg = userInput;
 	    if (m_integrated_key_arg.empty() || m_integrated_key_arg.size() != 256) {
-	    	fail_msg_writer() << "you should input a correctly integrated key" << m_integrated_key_arg.size();
+	    	fail_msg_writer() << "you should input a correctly integrated key";
 	    	return false;
 	    }
 	}
