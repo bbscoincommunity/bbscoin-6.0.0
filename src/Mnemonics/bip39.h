@@ -7,6 +7,8 @@
 #include <string>
 #include <map>
 
+#include "CryptoNoteCore/CryptoNoteBasicImpl.h"
+
 namespace BIP39 {
 
 const size_t MAX_BIP39_WORD_OCTETS = (8 * 4) + 1; //8 characters per word * 4 potential octets per character in UTF-8 + 1 nul terminiator
@@ -54,7 +56,8 @@ word_list create_mnemonic(std::vector<uint8_t>& entropy, language lang = languag
 
 std::vector<uint8_t> decode_mnemonic(const word_list& mnemonic, const std::string& password = "");
 
-bool valid_mnemonic(const word_list& mnemonic, language lang = language::en);
+bool valid_mnemonic(const word_list& mnemonic, language lang, std::vector<uint8_t>& data);
+bool convert_to_secret_key(std::string& mnemonic_word, language lang, Crypto::SecretKey& secretKey);
 
 }
 

@@ -48,6 +48,7 @@
 #include "WalletLegacy/WalletHelper.h"
 
 #include "Mnemonics/bip39.h"
+#include "Mnemonics/util.h"
 
 #include "version.h"
 
@@ -602,17 +603,27 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm) {
 	    	fail_msg_writer() << "you should input a correctly spend Mnemonic words";
 	    	return false;
 	    }
-	    
-	    Crypto::SecretKey viewSecretKey = Mnemonics::MnemonicToPrivateKey(m_view_mnemonic_arg);
-	    Crypto::SecretKey spendSecretKey = Mnemonics::MnemonicToPrivateKey(m_spend_mnemonic_arg);
 
+	    Crypto::SecretKey viewSecretKey;
+		Crypto::SecretKey spendSecretKey;
 		Crypto::PublicKey viewPublicKey;
+		Crypto::PublicKey spendPublicKey;
+
+	    if (!BIP39::convert_to_secret_key(m_view_mnemonic_arg, BIP39::language::en, viewSecretKey)) {
+			fail_msg_writer() << "Failed to check view secret key ";
+			return false;
+	    }
+
+	    if (!BIP39::convert_to_secret_key(m_spend_mnemonic_arg, BIP39::language::en, spendSecretKey)) {
+			fail_msg_writer() << "Failed to check view secret key ";
+			return false;
+	    }
+
 		if (!Crypto::secret_key_to_public_key(viewSecretKey, viewPublicKey)) {
 			fail_msg_writer() << "Failed to convert view secret key to public key, from " << Common::podToHex(viewSecretKey);
 			return false;
 		}
 
-		Crypto::PublicKey spendPublicKey;
 		if (!Crypto::secret_key_to_public_key(spendSecretKey, spendPublicKey)) {
 			fail_msg_writer() << "Failed to convert spend secret key to public key, from " << Common::podToHex(spendSecretKey);
 			return false;

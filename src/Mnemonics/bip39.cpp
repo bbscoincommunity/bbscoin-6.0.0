@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <functional>
 #include <cassert>
+#include <iostream>
 
 namespace BIP39 {
 
@@ -116,8 +117,9 @@ std::vector<uint8_t> decode_mnemonic(const word_list& mnemonic, const std::strin
     return std::vector<uint8_t>();
 }
 
-bool valid_mnemonic(const word_list& mnemonic, language lang /* = language::en */) {
+bool valid_mnemonic(const word_list& mnemonic, language lang, std::vector<uint8_t>& data) {
     const auto word_count = mnemonic.size();
+    
     if ((word_count % MNEMONIC_WORD_MULTIPLE) != 0) {
         return false;
     }
@@ -129,7 +131,7 @@ bool valid_mnemonic(const word_list& mnemonic, language lang /* = language::en *
     assert((entropy_bits % BYTE_BITS) == 0);
 
     size_t bit = 0;
-    std::vector<uint8_t> data((total_bits + BYTE_BITS - 1) / BYTE_BITS, 0);
+    std::vector<uint8_t> new_data((total_bits + BYTE_BITS - 1) / BYTE_BITS, 0);
     const auto lexicon = get_string_table(lang);
 
     for (const auto& word : mnemonic)
@@ -142,14 +144,30 @@ bool valid_mnemonic(const word_list& mnemonic, language lang /* = language::en *
             if ((position & (1 << (BITS_PER_WORD - loop - 1))) != 0)
             {
                 const auto byte = bit / BYTE_BITS;
-                data[byte] |= bip39_shift(bit);
+                new_data[byte] |= bip39_shift(bit);
             }
         }
     }
 
-    data.resize(entropy_bits / BYTE_BITS);
+    new_data.resize(entropy_bits / BYTE_BITS);
+    data = new_data;
     const auto new_mnemonic = create_mnemonic(data, lang);
     return std::equal(new_mnemonic.begin(), new_mnemonic.end(), mnemonic.begin());
 }
 
+bool convert_to_secret_key(std::string& mnemonic_word, language lang, Crypto::SecretKey& secretKey) {
+	char delimiter = ' ';
+	std::vector<uint8_t> vecSecretKey;
+
+	word_list mnemonic = BIP39::split(mnemonic_word, delimiter);
+	bool ret = valid_mnemonic(mnemonic, BIP39::language::en, vecSecretKey);
+	if (!ret) {
+		return ret;
+	}
+
+	for (int i = 0; i < 32; ++i) {
+		secretKey.data[i] = vecSecretKey[i];
+	}
+	return true;
+}
 }
