@@ -1,3 +1,9 @@
+|| Release notes 6.1.0
+
+SimpleWallet added key import and export.
+SimpleWallet added BIP39-style mnemonic words. (Compatible with Web Wallet)
+Optimize code
+
 || Release notes 6.0.1
 
 Optimize code
