@@ -7,6 +7,13 @@
 
 #include "bip39.h"
 #include "english.h"
+#include "spanish.h"
+#include "japanese.h"
+#include "italian.h"
+#include "french.h"
+#include "korean.h"
+#include "chinese_simplified.h"
+#include "chinese_traditional.h"
 
 #include "picosha2.h"
 
@@ -26,6 +33,13 @@ using random_bytes_engine = std::independent_bits_engine<
 const char* const * get_string_table(language lang) {
 	switch (lang) {
 	case language::en: return english_table;
+    case language::es: return spanish_table;
+    case language::ja: return japanese_table;
+    case language::it: return italian_table;
+    case language::fr: return french_table;
+    case language::ko: return korean_table;
+    case language::zh_Hans: return chinese_simplified_table;
+    case language::zh_Hant: return chinese_traditional_table;
 
 	default:
 		assert("error unsupported language");
