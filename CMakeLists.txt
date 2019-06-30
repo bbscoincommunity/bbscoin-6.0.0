@@ -25,6 +25,20 @@ set(ENABLE_PTHREAD_MUTEX_ADAPTIVE_NP OFF CACHE STRING "Enable RocksDB PTHREAD_MU
 set(ENABLE_MALLOC_USABLE_SIZE OFF CACHE STRING "Enable RocksDB MALLOC_USABLE_SIZE support detection? Defaults to OFF")
 set(ENABLE_SCHED_GETCPU OFF CACHE STRING "Enable RocksDB SCHED_GETCPU support detection? Defaults to OFF")
 
+## This section is for settings found in the slow-hash routine(s) that may benefit some systems (mostly Aarch64)
+set(FORCE_USE_HEAP ON CACHE BOOL "Force the use of heap memory allocation")
+set(NO_AES OFF CACHE BOOL "Turn off Hardware AES instructions?")
+set(NO_OPTIMIZED_MULTIPLY_ON_ARM OFF CACHE BOOL "Turn off Optimized Multiplication on ARM?")
+if(FORCE_USE_HEAP)
+  add_definitions(-DFORCE_USE_HEAP)
+endif()
+if(NO_AES)
+  add_definitions(-DNO_AES)
+endif()
+if(NO_OPTIMIZED_MULTIPLY_ON_ARM)
+  add_definitions(-DNO_OPTIMIZED_MULTIPLY_ON_ARM)
+endif()
+
 enable_testing()
 # copy CTestCustom.cmake to build dir to disable long running tests in 'make test'
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake ${CMAKE_CURRENT_BINARY_DIR})
