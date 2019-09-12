@@ -1045,13 +1045,13 @@ std::vector<std::string> WalletGreen::doCreateAddressList(const std::vector<NewA
     }
 
     m_containerStorage.setAutoFlush(true);
-    auto currentTime = static_cast<uint64_t>(time(nullptr));
-    if (minCreationTimestamp + m_currency.blockFutureTimeLimitByBlockVersion(BLOCK_MAJOR_VERSION_4) < currentTime) {
-      m_logger(DEBUGGING) << "Reset is required";
-      save(WalletSaveLevel::SAVE_KEYS_AND_TRANSACTIONS, m_extra);
-      shutdown();
-      load(m_path, m_password);
-    }
+//    auto currentTime = static_cast<uint64_t>(time(nullptr));
+//    if (minCreationTimestamp + m_currency.blockFutureTimeLimitByBlockVersion(BLOCK_MAJOR_VERSION_4) < currentTime) {
+//      m_logger(DEBUGGING) << "Reset is required";
+//      save(WalletSaveLevel::SAVE_KEYS_AND_TRANSACTIONS, m_extra);
+//      shutdown();
+//      load(m_path, m_password);
+//    }
   } catch (const std::exception& e) {
     m_logger(ERROR, BRIGHT_RED) << "Failed to add wallets: " << e.what();
     startBlockchainSynchronizer();
