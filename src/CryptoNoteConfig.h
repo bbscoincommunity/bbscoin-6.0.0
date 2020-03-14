@@ -160,7 +160,6 @@ const char* const SEED_NODES[] = {
   "8.seed.bbscoin.xyz:11204", 
   "9.seed.bbscoin.xyz:11204", 
   "10.seed.bbscoin.xyz:11204", 
-  "173.82.240.211:11204", 
   "45.77.187.229:11204" 
 };
 
@@ -188,7 +187,8 @@ const std::initializer_list<CheckpointData> CHECKPOINTS = {
     {320500, "71a770968fe9fed126f4b4e8cb9e04414299b78131b9a3d77c19f34137af0241"},
     {340700, "1f8e2817413dc67cac1469f040f9e097a9dadcd6e5d38f3cae5101a28025d192"},
     {460730, "7947f322f3739e1a62f98135a21a242edd8794243f6d35e28cb7714545a3b205"},
-    {483290, "465d4248ffc8b2e96a98928d0cb87dca937e413a50580e2cc1174d9edaab9d60"}
+    {483290, "465d4248ffc8b2e96a98928d0cb87dca937e413a50580e2cc1174d9edaab9d60"},
+    {560800, "f59c3300d8fa4aa93f2453d6753e8ad3a8fb31c536b9428c30b68142577da91f"}
 };
 
 } // CryptoNote
